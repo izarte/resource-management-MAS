@@ -1,11 +1,3 @@
-/**
-* Name: proyectoFinal
-* Based on the internal empty template. 
-* Author: alifr
-* Tags: 
-*/
-
-
 model proyectoFinal
 
 /* Insert your model definition here */
