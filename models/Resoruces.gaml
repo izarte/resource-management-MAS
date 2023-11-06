@@ -110,7 +110,7 @@ species tierra{
 	}
 }
 
-experiment Wumpus_experimento_1 type: gui {
+experiment resources_main_1 type: gui {
 	/** Insert here the definition of the input and output of the model */
 	output {					
 		display view1 { 
