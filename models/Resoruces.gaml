@@ -31,6 +31,10 @@ global{
 	
 	point agua_loc;   // Locaclización del agua conocida para todos
 	int n_max;
+	int rainFrecuency <- 200;
+	int rainFrecuencyCounter;
+	int cantidadLluvia;
+	
 	
 	
 	// -- Init --
@@ -99,7 +103,52 @@ global{
 		ask agua{
 			agua_loc <- self.location;
 		}
+		
 	}
+	
+	reflex update_capacity{
+			rainFrecuencyCounter <- rainFrecuencyCounter + 1;
+			write rainFrecuencyCounter;
+			if(rainFrecuencyCounter > rainFrecuency){
+				rainFrecuencyCounter <- 0;
+				cantidadLluvia <- generateRain();
+				do rainEfect;
+			}
+	}
+	
+	int generateRain{
+		int auxRnd <- rnd(1,5);
+		int cantidadLLuviaAux <- 0;
+		if(auxRnd=1){
+			cantidadLLuviaAux <- 200;
+		}else if(auxRnd=2){
+			cantidadLLuviaAux <- 150;
+		}else if(auxRnd=3){
+			cantidadLLuviaAux <- 100;
+		}else if(auxRnd=4){
+			cantidadLLuviaAux <- 50;
+		}else{
+			cantidadLLuviaAux <- 0;
+		}
+		write "lo que llueve es" + cantidadLLuviaAux;
+		return cantidadLLuviaAux;
+	}
+	
+	action rainEfect{
+		ask agua{
+			capacity <- capacity + cantidadLluvia;
+		}
+		
+		loop tierra_1 over:tierra{
+			ask tierra_1{
+				hidr <- hidr + cantidadLluvia*0.05;
+				if(hidr > 10.0){
+					hidr <- 10.0;
+				}
+			} 
+		}
+	}
+	
 }
 
 
@@ -571,18 +620,18 @@ species agua{
 	// -- Init --
 	init{
 		ratio <- 2.0;
-		capacity <- 10000.0;
+		capacity <- 1000.0;
 		max_capacity <- 10000.0;
 	}
 	
 	
 	// -- Reflex --
 	// Actualización de la capacidad de agua
-	reflex update_capacity{
-		if(capacity < max_capacity){
-			capacity <- capacity + ratio;
-		}
-	}
+//	reflex update_capacity{
+//		if(capacity < max_capacity){
+//			capacity <- capacity + ratio;
+//		}
+//	}
 	
 	// -- Aspecto --
 	aspect base{
