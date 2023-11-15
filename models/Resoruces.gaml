@@ -646,29 +646,33 @@ species tierra{
 	int type;
 	string state;
 	float hidr;
-	
+	rgb colorTierra;
 	int counter;
 	
 	
 	init{
+		colorTierra  <- rgb (148,100,37);
 		state <- "dry";
 		hidr <- 10.0;
 		counter <- 0;
 	}
 	
 	aspect base{
-		if(state = "dry"){
-			rgb colorTierra <- rgb (148,100,37);
-			draw square(4) color: colorTierra border:#black;
+		// Dry color
+		colorTierra  <- rgb (148,100,37);
+
+		// Cultivated color
+		if(state = "cultivated"){
+			colorTierra <- rgb (48,182,43);
 		}
-		else if(state = "cultivated"){
-			rgb colorTierra <- rgb (48,182,43);
-			draw square(4) color: colorTierra border:#black;
-		}
+
+		// Harvestable color
 		else if(state = "harvestable"){
-			rgb colorTierra <- rgb (24,235,17);
-			draw square(4) color: colorTierra border:#black;
+			colorTierra <- rgb (24,235,17);
 		}
+
+		// Draw the aspect with selected color
+		draw square(4) color: colorTierra border:#black;
 	}
 	
 	reflex update_hidr when: state = "cultivated"{
