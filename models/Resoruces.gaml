@@ -657,8 +657,18 @@ species tierra{
 	}
 	
 	aspect base{
-		rgb colorTierra <- rgb (148,100,37);
-		draw square(4) color: colorTierra border:#black;
+		if(state = "dry"){
+			rgb colorTierra <- rgb (148,100,37);
+			draw square(4) color: colorTierra border:#black;
+		}
+		else if(state = "cultivated"){
+			rgb colorTierra <- rgb (48,182,43);
+			draw square(4) color: colorTierra border:#black;
+		}
+		else if(state = "harvestable"){
+			rgb colorTierra <- rgb (24,235,17);
+			draw square(4) color: colorTierra border:#black;
+		}
 	}
 	
 	reflex update_hidr when: state = "cultivated"{
