@@ -197,7 +197,7 @@ species human skills: [moving] control: simple_bdi{
 		hunger_level <- 100.0;
 		hunger_thres <- 50.0;
 		eat_quantity <- 1.0;
-		hunger_update <- rnd(0.01, 0.09);
+		hunger_update <- rnd(0.01, 0.05);
 		
 		
 		do add_desire(patrol);			// Deseo inicial: patrullar
@@ -551,12 +551,12 @@ species farmer parent: human{
 	
 	
 	// Reglas
-	rule belief: dry new_desire: cultivate;
+	rule belief: dry new_desire: cultivate strength:50;
 	rule belief: irrigate new_desire: irrigate;
-	rule belief: harvest new_desire: harvest;
+	rule belief: harvest new_desire: harvest strength:50;
 	
 	// Planes
-	plan cultivate_plan intention:cultivate priority:5{
+	plan cultivate_plan intention:cultivate priority:50{
 		//write "I am "+ name+ " and i cultivated";
 		
 		earth_loc[0].state <- "cultivated";
@@ -574,7 +574,7 @@ species farmer parent: human{
 		do remove_intention(irrigate);
 	}
 	
-	plan harvest_plan intention: harvest priority:5{
+	plan harvest_plan intention: harvest priority:50{
 		//write "I am "+name+" and i am harvesting";
 		
 		earth_loc[0].state <- "dry";
