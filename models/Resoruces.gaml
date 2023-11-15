@@ -615,7 +615,8 @@ species casa{
 species agua{
 	float ratio;							// Ratio de aparición
 	float capacity;							// Capacidad actual
-	float max_capacity;						// Máxima capacidad
+	float max_capacity;		
+	rgb colorAgua;				// Máxima capacidad
 	
 	// -- Init --
 	init{
@@ -635,7 +636,16 @@ species agua{
 	
 	// -- Aspecto --
 	aspect base{
-		draw square(4) color: #blue border: #black;
+		
+		colorAgua <- #blue;
+		
+		if(capacity < 500){
+			colorAgua  <- #darkblue;
+		}else if(capacity < 100){
+			colorAgua <- #black;
+		}
+		
+		draw square(4) color: colorAgua border: #black;
 	}
 }
 
