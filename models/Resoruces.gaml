@@ -29,11 +29,29 @@ global{
 	predicate irrigate <- new_predicate("irrigate");
 	predicate harvest <- new_predicate("harvest");
 	
+	
+	// Optimizaciones
+	float cantidadLluvia <- 114.0;
+	int rainFrecuency <- 201;
+	float eat_drink_q <- 0.005;
+	float earth_ratio <- 0.005; 
+	float negotiate_q <- 14.0;
+	float bonus_negotiate <- 0.05;
+	
+	// Reward
+	float reward <- 0.0;
+	int n_agents <- 0;
+	int max_n_agents <- 0;
+	float water_q <- 0.0;
+	float max_water_q <- 10000.0;
+	
+	
 	point agua_loc;   // Locaclización del agua conocida para todos
 	int n_max;
-	int rainFrecuency <- 200;
+	
 	int rainFrecuencyCounter;
-	int cantidadLluvia;
+	
+	float cantidadLluvia_;
 	
 	
 	
@@ -103,45 +121,37 @@ global{
 		ask agua{
 			agua_loc <- self.location;
 		}
-		
+	}
+	
+	reflex reward_func{
+		reward <- n_agents + water_q * max_n_agents / max_water_q;
 	}
 	
 	reflex update_capacity{
+		
 			rainFrecuencyCounter <- rainFrecuencyCounter + 1;
-			write rainFrecuencyCounter;
+			//write rainFrecuencyCounter;
 			if(rainFrecuencyCounter > rainFrecuency){
 				rainFrecuencyCounter <- 0;
-				cantidadLluvia <- generateRain();
+				cantidadLluvia_ <- generateRain();
 				do rainEfect;
 			}
 	}
 	
-	int generateRain{
-		int auxRnd <- rnd(1,5);
-		int cantidadLLuviaAux <- 0;
-		if(auxRnd=1){
-			cantidadLLuviaAux <- 200;
-		}else if(auxRnd=2){
-			cantidadLLuviaAux <- 150;
-		}else if(auxRnd=3){
-			cantidadLLuviaAux <- 100;
-		}else if(auxRnd=4){
-			cantidadLLuviaAux <- 50;
-		}else{
-			cantidadLLuviaAux <- 0;
-		}
-		write "lo que llueve es" + cantidadLLuviaAux;
-		return cantidadLLuviaAux;
+	float generateRain{
+		float quant <- rnd (0.0, 1.0, 0.2);
+		
+		return cantidadLluvia * quant;
 	}
 	
 	action rainEfect{
 		ask agua{
-			capacity <- capacity + cantidadLluvia;
+			capacity <- capacity + cantidadLluvia_;
 		}
 		
 		loop tierra_1 over:tierra{
 			ask tierra_1{
-				hidr <- hidr + cantidadLluvia*0.05;
+				hidr <- hidr + cantidadLluvia_*0.05;
 				if(hidr > 10.0){
 					hidr <- 10.0;
 				}
@@ -177,6 +187,8 @@ species human skills: [moving] control: simple_bdi{
 	human negotiator_food;
 	list prev_neg_food;
 	
+	float velocity;
+	
 	
 	
 	// -- Init --
@@ -187,7 +199,7 @@ species human skills: [moving] control: simple_bdi{
 		max_water_cap <- 100.0;
 		hidr_level <- 100.0;
 		thirst_thres <- 50.0;
-		thirst_update <- rnd(0.01, 0.09);
+		thirst_update <- rnd(1.0, 2.0) * eat_drink_q; // rnd(0.01, 0.05);
 		drink_quantity <- 1.0;
 		agreeableness <- 1.0;
 		negotiator <- nil;
@@ -197,8 +209,9 @@ species human skills: [moving] control: simple_bdi{
 		hunger_level <- 100.0;
 		hunger_thres <- 50.0;
 		eat_quantity <- 1.0;
-		hunger_update <- rnd(0.01, 0.05);
+		hunger_update <- rnd(1.0, 2.0) * eat_drink_q; // rnd(0.01, 0.05);
 		
+		velocity <- 2.0;
 		
 		do add_desire(patrol);			// Deseo inicial: patrullar
 		home_pos <- location;			// Asigna localización de la casa
@@ -281,7 +294,7 @@ species human skills: [moving] control: simple_bdi{
 		ask get_all_instances(human) at_distance(100) {
 			if(not(myself.prev_neg_food contains self) and human(self).food_cap > 50)
 			{
-				write "I am " + name + " and i want to negotiate with " + self.name + " with food";
+//				write "I am " + name + " and i want to negotiate with " + self.name + " with food";
 				human(myself).negotiator_food <- human(self);
 			}
 		}
@@ -303,6 +316,9 @@ species human skills: [moving] control: simple_bdi{
 		{
 			do ask_for_food;
 		}
+		if(food_cap < 10.0){
+			prev_neg_food <- [];
+		}
 	}
 	
 	
@@ -322,7 +338,13 @@ species human skills: [moving] control: simple_bdi{
 	
 	
 	action default{
-		do wander amplitude: 30.0 speed:1.0;
+		if(hunger_level > 30)
+		{
+			do wander amplitude: 30.0 speed:velocity;
+		}
+		else{
+			do wander amplitude: 30.0 speed:velocity * 1.8;
+		}
 	}
 	
 	// -- Planes --
@@ -393,24 +415,43 @@ species human skills: [moving] control: simple_bdi{
 	// Hacer negocios: agua
 	plan make_negotiation_water intention:negotiate priority:20{
 		float likeness <- get_liking(get_social_link(new_social_link(negotiator))) - (1.0 - agreeableness);
+		bool equal <- false;
 		
-		write "I am " + name + " and i am negotiating with " + negotiator.name + " for water";
+//		write "I am " + name + " and i am negotiating with " + negotiator.name + " for water";
 		
 		ask negotiator{
+			
+			if(myself.food_cap > 50){
+				equal <- true;
+				likeness <- likeness + 0.1;
+			}
+			
 			bool res <- flip(likeness);
-			write likeness;
+//			write likeness;
 			
 			if(res){
-				write "OK w";
-				self.water_cap <- self.water_cap - 10.0;
-				myself.water_cap <- myself.water_cap + 10.0;
+//				write "OK w";
+				
+				self.water_cap <- self.water_cap - negotiate_q;
+				myself.water_cap <- myself.water_cap + negotiate_q;
+				
+				if(equal){
+					self.food_cap <- self.food_cap + negotiate_q;
+					myself.food_cap <- myself.food_cap - negotiate_q;
+//					write "Negocio tmb por comida";
+				}
+				
+				self.agreeableness  <- self.agreeableness + bonus_negotiate;				
 			}
 			else{
-				write "BAD w";
+//				write "BAD w";
 				if(likeness > 0.5){
-					self.agreeableness  <- self.agreeableness - abs((likeness)/n_max - 0.5);
+					self.agreeableness  <- self.agreeableness - bonus_negotiate;
 				}
 			}
+		}
+		if(equal){
+			likeness <- likeness - 0.1;
 		}
 		
 		negotiator <- nil;
@@ -422,24 +463,44 @@ species human skills: [moving] control: simple_bdi{
 	// Hacer negocios: comida
 	plan make_negotiation_food intention:negotiate_food priority:20{
 		float likeness <- get_liking(get_social_link(new_social_link(negotiator_food))) - (1.0 - agreeableness);
+		bool equal <- false;
 		
-		write "I am " + name + " and i am negotiating with " + negotiator_food.name + " for food";
+//		write "I am " + name + " and i am negotiating with " + negotiator_food.name + " for food";
 		
 		ask negotiator_food{
+			
+			if(myself.water_cap > 50){
+				equal <- true;
+				likeness <- likeness + 0.1;
+			}
+			
 			bool res <- flip(likeness);
-			write likeness;
+//			write likeness;
 			
 			if(res){
-				write "OK F";
-				self.food_cap <- self.food_cap - 10.0;
-				myself.food_cap <- myself.food_cap + 10.0;
+//				write "OK F";
+				self.food_cap <- self.food_cap - negotiate_q;
+				myself.food_cap <- myself.food_cap + negotiate_q;
+				
+				if(equal){
+					self.water_cap <- self.water_cap + negotiate_q;
+					myself.water_cap <- myself.water_cap - negotiate_q;
+//					write "Negocio tmb por agua";
+				}
+				
+				self.agreeableness  <- self.agreeableness + bonus_negotiate;
 			}
 			else{
-				write "BAD F";
+//				write "BAD F";
 				if(likeness > 0.5){
-					self.agreeableness  <- self.agreeableness - abs((likeness)/n_max - 0.5);
+					self.agreeableness  <- self.agreeableness - bonus_negotiate;
 				}
 			}
+		}
+		
+		if(equal)
+		{
+			likeness <- likeness - 0.1;
 		}
 		
 		negotiator_food <- nil;
@@ -461,7 +522,8 @@ species human skills: [moving] control: simple_bdi{
 	
 	// Die
 	reflex human_die when: hidr_level <= 0 or hunger_level <= 0 {
-		write "I am " + name + " and I die";
+//		write "I am " + name + " and I die";
+		n_agents <- n_agents - 1;
 		do die;
 	}
 	
@@ -484,44 +546,7 @@ species farmer parent: human{
 		do add_desire(farm);
 	}
 	
-//	action ask_for_water{
-////		write "I am " + name + " and i want to negotiate";
-//		ask farmer  at_distance(100) {
-//			if(not(myself.prev_neg contains self) and self.water_cap > 50)
-//			{
-//				write "I am " + name + " and i want to negotiate with " + self.name + " with water ";
-//				myself.negotiator <- self;
-//			}
-//		}
-//		
-//		if(negotiator != nil){
-//			add negotiator to: prev_neg;
-//
-//			do add_belief(negotiate);
-//		    do remove_belief(no_water);
-//		    do remove_intention(get_predicate(get_current_intention()));
-//		}
-//	}
-//	
-//	action ask_for_food{
-////		write "I am " + name + " and i want to negotiate";
-//		ask farmer at_distance(100) {
-//			if(not(myself.prev_neg_food contains self) and self.food_cap > 50)
-//			{
-//				write "I am " + name + " and i want to negotiate with " + self.name + " with food";
-//				myself.negotiator_food <- self;
-//			}
-//		}
-//		
-//		if(negotiator_food != nil){
-//			add negotiator_food to: prev_neg_food;
-//
-//			do add_belief(negotiate_food);
-//		    do remove_belief(no_food);
-//		    do remove_intention(get_predicate(get_current_intention()));
-//		}
-//	}
-//	
+	
 	action default{
 		do goto target:earth_loc[0].location  speed:1.0;
 	}
@@ -597,12 +622,17 @@ species casa{
 	
 	// -- Init --
 	init{
-		n_humanos <- rnd (1, 3);		// Número de humanos aleatorio
-
+		n_humanos <- rnd (1, 2);		// Número de humanos aleatorio
+		int n_farmer <- rnd (1, 2);
+		
+		n_agents <- n_agents + n_humanos;
+		max_n_agents <- n_agents;
+		
 		location <- {18 + 8*(id - max_row*int(id/max_row)), 18 + 8*int(id/max_row)};	// Localización de la casa
 		
 		// --- Creación de humanos: conocen el ID de la casa y su localización ---
-		create farmer number: n_humanos with: [id::self.id, location::self.location, home_pos::self.location];
+		create farmer number: n_farmer with: [id::self.id, location::self.location, home_pos::self.location];
+		create human number: n_humanos with: [id::self.id, location::self.location, home_pos::self.location];
 	}
 	
 	// -- Aspecto --
@@ -622,7 +652,7 @@ species agua{
 	init{
 		ratio <- 2.0;
 		capacity <- 1000.0;
-		max_capacity <- 10000.0;
+		max_capacity <- max_water_q;
 	}
 	
 	
@@ -633,6 +663,10 @@ species agua{
 //			capacity <- capacity + ratio;
 //		}
 //	}
+
+	reflex get_cap{
+		water_q <- capacity;
+	}
 	
 	// -- Aspecto --
 	aspect base{
@@ -687,7 +721,7 @@ species tierra{
 	
 	reflex update_hidr when: state = "cultivated"{
 		if(hidr > 0.0){
-			hidr <- hidr - 0.05;
+			hidr <- hidr - earth_ratio;
 			counter <- counter + 1;
 		}
 		else{
@@ -700,6 +734,8 @@ species tierra{
 			counter <- 0;
 			state <- "harvestable";
 		}
+		
+		
 	}
 }
 
@@ -716,4 +752,22 @@ experiment resources_main_1 type: gui {
 			species farmer aspect: base;
 		}
 	}
+}
+
+//float cantidadLluvia <- 200.0;
+//	int rainFrecuency <- 200;
+//	float eat_drink_q <- 0.01;
+//	float earth_ratio <- 0.01; 
+//	float negotiate_q <- 10.0;
+//	float bonus_negotiate <- 0.1;
+
+experiment Batch type: batch repeat: 1 keep_seed: true until: n_agents <= 0 or cycle > 30000{
+    parameter 'cantidadLluvia:' var: cantidadLluvia min: 100.0 max: 300.0;
+    parameter 'rainFrecuency' var: rainFrecuency min: 100 max: 300;
+    parameter 'eat_drink_q' var: eat_drink_q min: 0.005 max: 0.3;
+    parameter 'earth_ratio' var: earth_ratio min: 0.005 max: 0.3;
+    parameter 'negotiate_q:' var: negotiate_q min: 1.0 max: 40.0;
+    parameter 'bonus_negotiate' var: bonus_negotiate min: 0.05 max: 0.3;
+
+    method hill_climbing iter_max: 100 maximize: reward;
 }
