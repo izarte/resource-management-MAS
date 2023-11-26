@@ -569,8 +569,14 @@ species human skills: [moving] control: simple_bdi{
 	aspect base {			
 		draw triangle(2) color:color rotate: 90 + heading;	
 	}
+	aspect icon{
+		image_file my_icon <- image_file("../includes/human.png");
+		draw my_icon size: 5;
+	}
 	aspect info {
-		draw triangle(2) color:color rotate: 90 + heading;
+		//draw triangle(2) color:color rotate: 90 + heading;
+		image_file my_icon <- image_file("../includes/human.png");
+		draw my_icon size: 5;
 		draw string("w: " + water_cap with_precision 2) size: 3 at: location + {0.5, 0, 0} color: #black;
 		draw string("f: " + food_cap with_precision 2) size: 3 at: location + {0.5, 1.5, 0} color: #black;
 	}
@@ -757,7 +763,7 @@ species casa{
 		
 		// --- Creación de humanos: conocen el ID de la casa y su localización ---
 		create farmer number: n_farmers with: [id::self.id, location::self.location, home_pos::self.location];
-		//create human number: n_humanos with: [id::self.id, location::self.location, home_pos::self.location];
+		create human number: n_humanos with: [id::self.id, location::self.location, home_pos::self.location];
 	}
 	
 	// -- Aspecto --
@@ -889,7 +895,7 @@ experiment resources_main_1 type: gui {
 			species casa aspect:icon;
 			species agua aspect:base;
 			species tierra aspect:base;
-			species human aspect:base;
+			species human aspect:icon;
 			species farmer aspect: icon;		
 		}
 		display info_display type:2d antialias:false {
